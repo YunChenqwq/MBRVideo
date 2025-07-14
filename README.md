@@ -27,7 +27,7 @@
 | 参数名              | 说明                          | 默认值     |
 |---------------------|-----------------------------|-----------|
 | MIDI Input          | MIDI 文件路径（`.mid` 或 `.midi`）| 空        |
-| Playback Speed      | 播放速度（1.0=正常速度）       | 1.0       |
+| Playback Speed      | 播放速度（1.0=正常速度，但是实测有点偏慢）       | 1.0       |
 | Pitch Adjustment    | 移调（单位：半音）             | 0         |
 | ASM Output File     | 生成的 ASM 数据文件名          | music.asm |
 
