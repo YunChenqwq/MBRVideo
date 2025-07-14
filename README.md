@@ -40,7 +40,7 @@
 ### 镜像设置
 | 参数名             | 说明                    | 默认值     |
 |--------------------|-----------------------|-----------|
-| Image Output       | 最终生成 `.img` 镜像名称 | .img |
+| Image Output       | 最终生成 `.img` 镜像名称 | yourimg.img |
 
 ---
 
@@ -73,8 +73,8 @@
 - 安装依赖：`pip install -r requirements.txt`
 
 ### 额外工具
-- NASM（用于编译bootloader）
-- FFmpeg（视频处理，已包含在整合包中）
+- NASM（用于编译你的bootloader）
+- 你自己的脑子
 
 ### CUDA支持（可选）
 - NVIDIA显卡 + 对应驱动
@@ -91,5 +91,15 @@
 2. 使用NASM编译：`nasm yourcode.asm -o program.bin`
 3. 请确保你的程序代码是org 0x0000而不是0X7C00，且其他的东西也需要调整。否则将无法正常运行。详细自己询问ai吧
 
+
+## 🚀将程序写到到硬盘
+1. 确保你的生成文件名为yourimg.img
+2. 将文件和write.cpp编译出的exe在同一目录下
+3. 运行write.cpp，将自动写入你要写入的设备中
+
+
+
+
 ## 支持作者（求投喂！！）
 	写代码真的很累，不想再碰了T-T，请给我买杯可乐咖啡以支持我更新。
+ 	![image](https://github.com/YunChenqwq/MBRVideo/blob/main/zsm.jpg)
