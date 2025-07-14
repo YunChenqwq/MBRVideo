@@ -101,5 +101,5 @@
 
 
 ## 支持作者（求投喂！！）
-	写代码真的很累，不想再碰了T-T，请给我买杯可乐咖啡以支持我更新。
+写代码真的很累，不想再碰了T-T，请给我买杯可乐咖啡以支持我更新。
  	![image](https://github.com/YunChenqwq/MBRVideo/blob/main/zsm.jpg)
