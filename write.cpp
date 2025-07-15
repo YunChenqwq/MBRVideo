@@ -1,11 +1,13 @@
 ﻿#include <windows.h>
-#include <winioctl.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <TlHelp32.h>
+
 using namespace std;
+
+#define BLOCK_SIZE (1024 * 1024) // 1MB 每块，嫌慢可以搞到更大，但是不建议
 
 // 获取可用的物理驱动器列表
 vector<string> GetPhysicalDrives() {
@@ -33,9 +35,9 @@ vector<string> GetPhysicalDrives() {
 
     return drives;
 }
-// 将镜像文件写入指定驱动器
+
+// 将镜像文件分块写入指定驱动器
 bool WriteImageToDrive(const string& drivePath, const string& imagePath) {
-    // 以读写方式打开物理驱动器
     HANDLE hDrive = CreateFileA(
         drivePath.c_str(),
         GENERIC_WRITE | GENERIC_READ,
@@ -51,78 +53,79 @@ bool WriteImageToDrive(const string& drivePath, const string& imagePath) {
         return false;
     }
 
-    // 打开镜像文件
-    ifstream imageFile(imagePath, ios::binary | ios::ate);
+    ifstream imageFile(imagePath, ios::binary);
     if (!imageFile.is_open()) {
         cerr << "无法打开镜像文件 " << imagePath << endl;
         CloseHandle(hDrive);
         return false;
     }
 
-    // 获取镜像文件大小
-    streamsize imageSize = imageFile.tellg();
-    imageFile.seekg(0, ios::beg);
+    vector<char> buffer(BLOCK_SIZE);
+    DWORD bytesWritten = 0;
+    ULONGLONG totalWritten = 0;
+    int blockCount = 0;
 
-    // 读取镜像文件内容
-    char* buffer = new char[imageSize];
-    if (!imageFile.read(buffer, imageSize)) {
-        cerr << "读取镜像文件失败" << endl;
-        delete[] buffer;
-        imageFile.close();
-        CloseHandle(hDrive);
-        return false;
+    while (!imageFile.eof()) {
+        imageFile.read(buffer.data(), BLOCK_SIZE);
+        streamsize bytesRead = imageFile.gcount();
+
+        if (bytesRead == 0) break;
+
+        if (!WriteFile(hDrive, buffer.data(), (DWORD)bytesRead, &bytesWritten, NULL)) {
+            cerr << "\n写入驱动器失败。错误代码: " << GetLastError() << endl;
+            imageFile.close();
+            CloseHandle(hDrive);
+            return false;
+        }
+
+        totalWritten += bytesWritten;
+        blockCount++;
+
+        cout << "\r已写入: " << (totalWritten / 1024 / 1024) << " MB (" << blockCount << " blocks)" << flush;
     }
+
+    cout << "\n 成功写入 " << totalWritten << " 字节到 " << drivePath << endl;
+
     imageFile.close();
-
-    // 写入驱动器
-    DWORD bytesWritten;
-    if (!WriteFile(hDrive, buffer, (DWORD)imageSize, &bytesWritten, NULL)) {
-        cerr << "写入驱动器失败。错误代码: " << GetLastError() << endl;
-        delete[] buffer;
-        CloseHandle(hDrive);
-        return false;
-    }
-
-    cout << "成功写入 " << bytesWritten << " 字节到 " << drivePath << endl;
-
-    delete[] buffer;
     CloseHandle(hDrive);
     return true;
 }
-void GetPrivileges()
-{
-    HANDLE hProcess;
+
+// 提权以访问物理驱动器
+void GetPrivileges() {
+    HANDLE hProcess = GetCurrentProcess();
     HANDLE hTokenHandle;
     TOKEN_PRIVILEGES tp;
-    hProcess = GetCurrentProcess();
+
     OpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hTokenHandle);
     tp.PrivilegeCount = 1;
     LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid);
     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
     AdjustTokenPrivileges(hTokenHandle, FALSE, &tp, sizeof(tp), NULL, NULL);
+
     CloseHandle(hTokenHandle);
     CloseHandle(hProcess);
 }
+
 int main() {
-    GetPrivileges();//古法提权
+    GetPrivileges();
     cout << "物理驱动器写入工具" << endl;
     cout << "------------------" << endl;
 
-    // 获取可用物理驱动器列表
+    // 获取可用物理驱动器
     vector<string> drives = GetPhysicalDrives();
-
     if (drives.empty()) {
         cerr << "未找到可用的物理驱动器，请使用管理员权限运行本程序" << endl;
         return 0;
     }
 
-    // 显示可用驱动器
+    // 列出驱动器
     cout << "可用的物理驱动器:" << endl;
     for (size_t i = 0; i < drives.size(); i++) {
         cout << "[" << i << "] " << drives[i] << endl;
     }
 
-    // 获取用户选择
+    // 用户选择驱动器
     int choice;
     cout << "\n请输入要写入的驱动器编号 (0-" << drives.size() - 1 << "): ";
     cin >> choice;
@@ -132,7 +135,10 @@ int main() {
         return 0;
     }
 
-    string imagePath = "yourimg.img";
+    string imagePath;
+    cout << "请输入要写入的镜像文件路径: ";
+    cin >> ws;
+    getline(cin, imagePath);
 
     // 检查镜像文件是否存在
     ifstream testFile(imagePath);
@@ -142,8 +148,7 @@ int main() {
     }
     testFile.close();
 
-    // 确认操作
-    cout << "\n警告: 这将完全覆盖 " << drives[choice] << " 上的所有数据!" << endl;
+    cout << "\n 警告: 这将完全覆盖 " << drives[choice] << " 上的所有数据!" << endl;
     cout << "你确定要继续吗? (y/n): ";
     char confirm;
     cin >> confirm;
@@ -153,13 +158,14 @@ int main() {
         return 0;
     }
 
-    // 执行写入操作
+    // 执行写入
     cout << "开始写入..." << endl;
     if (WriteImageToDrive(drives[choice], imagePath)) {
-        cout << "写入完成!" << endl;
+        cout << " 写入完成!" << endl;
     }
     else {
         cerr << "写入过程中发生错误" << endl;
     }
+
     return 0;
 }

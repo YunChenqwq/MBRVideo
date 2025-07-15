@@ -63,22 +63,43 @@ def process_midi(midi_file, tempo_factor=1.0, pitch_shift=0):
 
 def generate_asm(notes, output_file="middata.asm"):
     """生成汇编格式的音乐数据"""
+    MAX_BYTES = 5120  # 最大允许的字节数
+    BYTES_PER_NOTE = 4  # 每个(freq,dur)对占4字节
+    
+    # 处理音符序列，在相同频率的音符间插入休止符
+    processed_notes = []
+    for i in range(len(notes)):
+        # 提前检查是否超限（保留4字节给结束标记）
+        if len(processed_notes) * BYTES_PER_NOTE >= MAX_BYTES - 4:
+            print("警告: 数据即将超限，将强制截断midi")
+            break
+            
+        processed_notes.append(notes[i])
+        
+        # 检查当前音符和下一个音符是否相同且不是结束标记
+        if (i < len(notes)-1 and 
+            notes[i][0] == notes[i+1][0] and 
+            notes[i][0] != -1 and
+            (len(processed_notes) + 1) * BYTES_PER_NOTE <= MAX_BYTES):
+            processed_notes.append((0, 8))  # 插入8ms的休止符
+    
+    # 强制添加结束标记（覆盖最后一个元素）
+    processed_notes[-1] = (-1, -1)
+    
+    # 精确计算大小
+    total_notes = len(processed_notes)
+    total_bytes = total_notes * BYTES_PER_NOTE
+    
     with open(output_file, 'w') as f:
         f.write("; 自动生成的音乐数据\n")
         f.write("; 格式: 频率(Hz), 时长(ms)\n")
+        f.write(f"; 实际编译大小: {total_bytes} 字节\n")  # 准确反映编译后大小
+        f.write("; 最大限制: 5120 字节\n")
         f.write("music_data:\n")
         
-        # 处理音符序列，在相同频率的音符间插入休止符
-        processed_notes = []
-        for i in range(len(notes)):
-            processed_notes.append(notes[i])
-            # 检查当前音符和下一个音符是否相同且不是结束标记
-            if i < len(notes)-1 and notes[i][0] == notes[i+1][0] and notes[i][0] != -1:
-                processed_notes.append((0, 8))  # 插入4ms的休止符
-        
-        # 每行写入5个音符（10个值）
-        for i in range(0, len(processed_notes), 5):
-            batch = processed_notes[i:i+5]
+        # 每行写入3个音符（6个word，12字节）
+        for i in range(0, len(processed_notes), 3):
+            batch = processed_notes[i:i+3]
             line = "    dw " + ", ".join(f"{freq}, {duration}" for freq, duration in batch)
             f.write(line + "\n")
 
@@ -102,6 +123,10 @@ if __name__ == "__main__":
         generate_asm(notes, args.output)
         print(f"转换完成：{args.input_file} -> {args.output}")
         print(f"速度系数: {args.speed}x, 音高偏移: {args.pitch}半音")
+        # 显示实际文件大小
+        import os
+        size = os.path.getsize(args.output)
+        print(f"生成文件大小: {size} 字节 (编译后预计: {size} 字节)")
     except Exception as e:
         print(f"错误: {e}")
         sys.exit(1)

@@ -25,7 +25,7 @@ class MBRvideoBuilder:
         self.use_cuda = tk.BooleanVar(value=False)
         
         self.midi_input = tk.StringVar(value="")  # Initial empty, not required
-        self.midi_speed = tk.DoubleVar(value=1.0)  # Float type, 1.0 means original speed
+        self.midi_speed = tk.DoubleVar(value=3.0)  # 默认设为3.0作为1x速度
         self.midi_pitch = tk.IntVar(value=0)  # Pitch adjustment parameter
         self.midi_output = tk.StringVar(value="middata.asm")
         
@@ -135,9 +135,10 @@ class MBRvideoBuilder:
         ttk.Label(speed_frame, 
                  text="Playback Speed/播放速度:").pack(side=tk.LEFT, padx=5)
         
+        # 调整速度范围为1.5-9.0 (3.0作为1x)
         ttk.Scale(speed_frame, 
-                 from_=0.5, 
-                 to=3.0, 
+                 from_=1.5, 
+                 to=9.0, 
                  variable=self.midi_speed, 
                  orient=tk.HORIZONTAL, 
                  length=150).pack(side=tk.LEFT)
@@ -228,6 +229,9 @@ class MBRvideoBuilder:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.log_text.config(yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.log_text.yview)
+        
+        # 初始化速度显示
+        self.update_speed_display()
     
     def export_hex(self):
         """Export binary file as HEX format/将二进制文件导出为HEX格式"""
@@ -266,7 +270,8 @@ class MBRvideoBuilder:
     
     def update_speed_display(self, *args):
         """Update speed display/更新速度显示"""
-        speed = round(self.midi_speed.get(), 1)
+        # 3.0作为1x基准，显示为1.0x
+        speed = round(self.midi_speed.get() / 3.0, 1)
         self.speed_display.config(text=f"{speed}x")
     
     def update_pitch_display(self, *args):
@@ -414,17 +419,19 @@ class MBRvideoBuilder:
                 f.write("    dw -1, -1\n")
             return
         
-        midi_speed = str(round(self.midi_speed.get(), 2))  # Keep 2 decimal places
+        # 3.0作为1x基准，传给mid2data.py的实际速度值
+        actual_speed = str(round(self.midi_speed.get(), 2))
         midi_pitch = str(self.midi_pitch.get())
         midi_output = f"asm/{self.midi_output.get()}"
         
         self.log(f"\nProcessing MIDI/处理MIDI: {os.path.basename(midi_input)}")
-        self.log(f"Speed/速度: x{midi_speed}, Pitch/音高: {midi_pitch} semitones/半音, Output/输出: {midi_output}")
+        self.log(f"Speed/速度: x{round(self.midi_speed.get() / 3.0, 1)} (实际速度值: {actual_speed})")
+        self.log(f"Pitch/音高: {midi_pitch} semitones/半音, Output/输出: {midi_output}")
         
         cmd = [
             "python", "mid2data.py",
             midi_input,
-            "-s", midi_speed,
+            "-s", actual_speed,
             "-p", midi_pitch,
             "-o", midi_output
         ]

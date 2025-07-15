@@ -12,7 +12,7 @@ start:
     mov ax, 0x0013
     int 0x10
 
-    ; Initialize music DAP (9 sectors: LBA 1-9)
+    ; 初始化音乐 DAP（9 个扇区：LBA 1 到 9）
     mov byte [music_dap], 0x10
     mov byte [music_dap+1], 0
     mov word [music_dap+2], 1
@@ -21,7 +21,7 @@ start:
     mov dword [music_dap+8], 1
     mov dword [music_dap+12], 0
 
-    ; Initialize video DAP (125 sectors: LBA 11-135)
+   ; 初始化视频DAP（一次读125个扇区）
     mov byte [video_dap], 0x10
     mov byte [video_dap+1], 0
     mov word [video_dap+2], 125
@@ -30,7 +30,7 @@ start:
     mov dword [video_dap+8], 11
     mov dword [video_dap+12], 0
 
-    ; Initialize music pointers
+    ; 初始化音乐指针
     mov word [current_ptr], 0x7E00
     mov word [buffer_end], 0x7E00 + 512
     mov word [sectors_remaining], 9
@@ -162,7 +162,7 @@ load_video_frame:
     ret
 
 .video_end:
-    ; 1. Reset disk controller
+    ; 1.重置磁盘读写
     mov dl, 0x80
     int 0x13
 	mov al, 0xB6
@@ -174,11 +174,11 @@ load_video_frame:
     and al, 0xFC
     out 0x61, al
     
-    ; 2. Restore text mode
+    ; 2. 设置文本模式
     mov ax, 0x0003
     int 0x10
     
-    ; 3. Load program using CHS (more reliable)
+    ; 3. 加载程序
     mov ax, 0x0201      ; AH=02(read), AL=1(sector count)
     mov cx, 0x000B      ; CH=0(cylinder 0), CL=11(sector 11)
     mov dx, 0x0080      ; DH=0(head 0), DL=80h(first HDD)
@@ -187,7 +187,7 @@ load_video_frame:
     xor bx, bx
     int 0x13
     
-    ; 4. Setup environment and jump
+    ; 4. 初始化环境
     xor ax, ax
     mov ds, ax
     mov es, ax
@@ -196,7 +196,6 @@ load_video_frame:
     mov ss, ax
     mov sp, 0xFFFE
     
-    ; Jump to loaded program
     jmp 0x2000:0x0000
 
 delay_1ms:
@@ -210,7 +209,7 @@ delay_1ms:
     pop cx
     ret
 
-; Data section
+; 数据段
 current_ptr dw 0
 buffer_end dw 0
 note_delay dw 0
@@ -234,8 +233,7 @@ video_dap:
 times 510-($-$$) db 0
 dw 0xAA55
 
-; ===== Included data =====
-%include "middata.asm"      ; Music data (sectors 2-10)
+%include "middata.asm"      
 times 4608 - ($ - music_data) db 0
-incbin "program.bin"        ; Program to load (sector 11)
+incbin "program.bin"        ; 要加载的程序，位于第十一个扇区
 times 5120 - ($ - music_data) db 0
