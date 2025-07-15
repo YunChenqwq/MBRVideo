@@ -87,7 +87,6 @@
 ## 常见问题解答
 1. 汇编错误：TIMES值为负数
 **错误信息**：
-```asm
 asm/loader_jmp.asm:237: error: TIMES value -508 is negative
 midi文件超出大小限制了，在最新的版本中已经添加了自动截断，但是你如果使用的是jmp模式仍然会触发
 
