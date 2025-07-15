@@ -1,7 +1,7 @@
 # MBRvideo Builder Tool v2.0
 
 一个用于生成在实模式下MBR视频的工具，可一键生成GIF/MP4格式的MBR视频，同时加入MIDI音乐,操作简单，只要会动脑有手都能使用。注释详细，请注意VGA调色板只有256色，色彩效果可能不太理想。
-整合包蓝奏云链接https://wwya.lanzoue.com/iNyRh314r1yb密码:4naq
+整合包蓝奏云链接https://wwya.lanzoue.com/iNyRh314r1yb 密码:4naq
 QQ群：653488716
 
 ## 🖥 功能简介
