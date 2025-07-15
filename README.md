@@ -84,6 +84,22 @@
 
 ---
 
+## 常见问题解答
+1. 汇编错误：TIMES值为负数
+**错误信息**：
+```asm
+asm/loader_jmp.asm:237: error: TIMES value -508 is negative
+midi文件超出大小限制了，在最新的版本中已经添加了自动截断，但是你如果使用的是jmp模式仍然会触发
+
+2.没装cuda使用cuda模式
+2. "C:\Users\admin\Desktop\MBRvideo\Python38\lib\site-packages\numba\cuda\cudadrv\driver.py", line 254, in ensure_initialized
+self.cuInit(0)
+File "C:\Users\admin\Desktop\MBRvideo\Python38\lib\site-packages\numba\cuda\cudadrv\driver.py", line 327, in safe_cuda_api_call
+self._check_ctypes_error(fname, retcode)
+File "C:\Users\admin\Desktop\MBRvideo\Python38\lib\site-packages\numba\cuda\cudadrv\driver.py", line 395, in _check_ctypes_error
+raise CudaAPIError(retcode, msg)
+numba.cuda.cudadrv.driver.CudaAPIError: [100] Call to cuInit results in CUDA_ERROR_NO_DEVICE
+
 ## 🔧 高级配置
 
 ### 添加自定义Bootloader
